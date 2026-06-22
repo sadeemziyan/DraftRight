@@ -7,7 +7,7 @@ load_dotenv()
 genai.configure(api_key = os.getenv("GEMINI_API_KEY"))
 model = genai.GenerativeModel("gemini-2.5-flash")
 
-def generate_cover_letter(resume_text: str, job_description: str, tone: str) -> str:
+async def generate_cover_letter(resume_text: str, job_description: str, tone: str) -> str:
     prompt = f"""
 You are an expert career coach and professional writer.
 
@@ -35,7 +35,7 @@ Write the cover letter now:
     response = model.generate_content(prompt)
     return response.text
 
-def generate_cold_email(resume_text: str, job_description: str, tone: str) -> str:
+async def generate_cold_email(resume_text: str, job_description: str, tone: str) -> str:
     prompt = f"""
 You are an expert at writing cold outreach emails that get responses.
 
