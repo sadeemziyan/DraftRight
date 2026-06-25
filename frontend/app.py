@@ -1,5 +1,7 @@
 import streamlit as st
+import streamlit.components.v1 as components
 import requests
+
 
 # ── Page config ────────────────────────────────────────────────────────────────
 st.set_page_config(
@@ -8,9 +10,12 @@ st.set_page_config(
     layout="centered"
 )
 
+if "results" not in st.session_state:
+    st.session_state.results = None
+
 # ── Title ──────────────────────────────────────────────────────────────────────
 st.title("✍️ DraftRight")
-st.caption("Upload your resume and paste a job description and get a tailored cover letter and cold email instantly.")
+st.caption("Upload your resume and paste a job description to get a tailored cover letter and cold email instantly.")
 
 st.divider()
 
@@ -25,12 +30,21 @@ job_description = st.text_area(
 
 tone = st.selectbox(
     "Select tone",
-    options=["formal", "conversational", "confident"],
+    options=["Formal", "Conversational", "Confident"],
     index=0
 )
 
 st.divider()
 
+# Copy button
+def copy_button(text, key):
+    components.html(f"""
+        <button onclick="navigator.clipboard.writeText(`{text}`)" 
+            style="background-color:#ff4b4b; color:white; border:none; 
+            padding:8px 16px; border-radius:4px; cursor:pointer;">
+            Copy to Clipboard
+        </button>
+    """, height=45)
 
 # ── Generate button ─────────────────────────────────────────────────────────────
 if st.button("Generate", type="primary", use_container_width=True):
@@ -49,33 +63,35 @@ if st.button("Generate", type="primary", use_container_width=True):
                     data={"job_description": job_description, "tone": tone}
                 )
                 response.raise_for_status()
-                result = response.json()
-
-                # ── Results ────────────────────────────────────────────────────
-                st.success("Done! Your drafts are ready.")
-                st.divider()
-
-                st.subheader("Cover Letter")
-                st.text_area("", value=result["cover_letter"], height=800, key="cover_letter_box")
-                st.download_button(
-                    label="Download Cover Letter",
-                    data=result["cover_letter"],
-                    file_name="cover_letter.txt",
-                    mime="text/plain"
-                )
-
-                st.divider()
-
-                st.subheader("Cold Email")
-                st.text_area("", value=result["cold_email"], height=400, key="cold_email_box")
-                st.download_button(
-                    label="Download Cold Email",
-                    data=result["cold_email"],
-                    file_name="cold_email.txt",
-                    mime="text/plain"
-                )
+                st.session_state.results = response.json()
 
             except requests.exceptions.ConnectionError:
                 st.error("Could not connect to the backend. Make sure FastAPI is running on port 8000.")
             except Exception as e:
                 st.error(f"Something went wrong: {e}")
+
+if st.session_state.results:
+    st.success("Done! Your drafts are ready.")
+    st.divider()
+
+    st.subheader("Cover Letter")
+    st.text_area("", value=st.session_state.results["cover_letter"], height=800, key="cover_letter_box")
+    copy_button(st.session_state.results["cover_letter"], key="cover_letter_copy")
+    st.download_button(
+        label="Download Cover Letter",
+        data=st.session_state.results["cover_letter"],
+        file_name="cover_letter.txt",
+        mime="text/plain"
+    )
+
+    st.divider()
+
+    st.subheader("Cold Email")
+    st.text_area("", value=st.session_state.results["cold_email"], height=400, key="cold_email_box")
+    copy_button(st.session_state.results["cold_email"], key="cold_email_copy")
+    st.download_button(
+        label="Download Cold Email",
+        data=st.session_state.results["cold_email"],
+        file_name="cold_email.txt",
+        mime="text/plain"
+    )
