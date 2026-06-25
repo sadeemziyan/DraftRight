@@ -87,13 +87,15 @@ with col1:
                     )
                     response.raise_for_status()
                     st.session_state.cover_letter = response.json()["cover_letter"]
+                except requests.exceptions.HTTPError as e:
+                    if e.response.status_code == 429 or e.response.status_code == 500:
+                        st.error("Rate limit reached. Please try again later.")
+                    else:
+                        st.error(f"Something went wrong: {e}")
                 except requests.exceptions.ConnectionError:
                     st.error("Could not connect to the backend. Make sure FastAPI is running on port 8000.")
                 except Exception as e:
-                    if "429" in str(e) or "quota" in str(e).lower():
-                        st.error("Rate limit reached. Please try again in a few minutes.")
-                    else:
-                        st.error(f"Something went wrong: {e}")
+                    st.error(f"Something went wrong: {e}")
 
     if st.session_state.cover_letter:
         st.text_area("", value=st.session_state.cover_letter, height=500, key="cover_letter_box")
@@ -125,13 +127,15 @@ with col2:
                     )
                     response.raise_for_status()
                     st.session_state.cold_email = response.json()["cold_email"]
+                except requests.exceptions.HTTPError as e:
+                    if e.response.status_code == 429 or e.response.status_code == 500:
+                        st.error("Rate limit reached. Please try again later.")
+                    else:
+                        st.error(f"Something went wrong: {e}")
                 except requests.exceptions.ConnectionError:
                     st.error("Could not connect to the backend. Make sure FastAPI is running on port 8000.")
                 except Exception as e:
-                    if "429" in str(e) or "quota" in str(e).lower():
-                        st.error("Rate limit reached. Please try again in a few minutes.")
-                    else:
-                        st.error(f"Something went wrong: {e}")
+                    st.error(f"Something went wrong: {e}")
 
     if st.session_state.cold_email:
         st.text_area("", value=st.session_state.cold_email, height=500, key="cold_email_box")

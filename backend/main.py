@@ -1,5 +1,6 @@
 import asyncio
-from fastapi import FastAPI, File, UploadFile, Form
+from fastapi import FastAPI, File, UploadFile, Form, HTTPException
+from google.genai import errors
 from fastapi.middleware.cors import CORSMiddleware
 from backend.parser import extract_text_from_pdf
 from backend.llm import generate_cover_letter, generate_cold_email
@@ -27,10 +28,15 @@ async def generate_cl(
     tone: str = Form(...),
     notes: str = Form(""),
 ):
-    file_bytes = await resume.read()
-    resume_text = extract_text_from_pdf(file_bytes)
-    cover_letter = await generate_cover_letter(resume_text, job_description, tone, notes)
-    return {"cover_letter": cover_letter}
+    try:
+        file_bytes = await resume.read()
+        resume_text = extract_text_from_pdf(file_bytes)
+        cover_letter = await generate_cover_letter(resume_text, job_description, tone, notes)
+        return {"cover_letter": cover_letter}
+    except errors.ClientError as e:
+        if "429" in str(e):
+            raise HTTPException(status_code=429, detail="Rate limit reached. Please try again later.")
+        raise HTTPException(status_code=500, detail=str(e))
 
 @app.post("/generate_cold_email")
 async def generate_ce(
@@ -39,8 +45,12 @@ async def generate_ce(
     tone: str = Form(...),
     notes: str = Form(""),
 ):
-    file_bytes = await resume.read()
-    resume_text = extract_text_from_pdf(file_bytes)
-    cold_email = await generate_cold_email(resume_text, job_description, tone, notes)
-    return {"cold_email": cold_email}
-
+    try:
+        file_bytes = await resume.read()
+        resume_text = extract_text_from_pdf(file_bytes)
+        cold_email = await generate_cold_email(resume_text, job_description, tone, notes)
+        return {"cold_email": cold_email}
+    except errors.ClientError as e:
+        if "429" in str(e):
+            raise HTTPException(status_code=429, detail="Rate limit reached. Please try again later.")
+        raise HTTPException(status_code=500, detail=str(e))
