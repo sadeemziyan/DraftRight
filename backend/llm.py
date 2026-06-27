@@ -5,7 +5,7 @@ from dotenv import load_dotenv
 load_dotenv()
 
 genai.configure(api_key = os.getenv("GEMINI_API_KEY"))
-model = genai.GenerativeModel("gemini-2.5-flash")
+model = genai.GenerativeModel("gemini-2.5-flash-lite")
 
 async def generate_cover_letter(resume_text: str, job_description: str, tone: str) -> str:
     prompt = f"""
