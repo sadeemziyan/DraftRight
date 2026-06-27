@@ -2,18 +2,19 @@ import streamlit as st
 import streamlit.components.v1 as components
 import requests
 
-BACKEND_URL = "https://localhost:8000"
-
+BACKEND_URL = "http://localhost:8000"
 
 # ── Page config ────────────────────────────────────────────────────────────────
 st.set_page_config(
     page_title="DraftRight",
     page_icon="✍️",
-    layout="centered"
+    layout="wide"
 )
 
-if "results" not in st.session_state:
-    st.session_state.results = None
+if "cover_letter" not in st.session_state:
+    st.session_state.cover_letter = None
+if "cold_email" not in st.session_state:
+    st.session_state.cold_email = None
 
 # ── Title ──────────────────────────────────────────────────────────────────────
 st.title("✍️ DraftRight")
@@ -21,7 +22,7 @@ st.caption("Upload your resume and paste a job description to get a tailored cov
 
 st.divider()
 
-# ── Inputs ─────────────────────────────────────────────────────────────────────
+# ── Shared Inputs ─────────────────────────────────────────────────────────────────────
 resume_file = st.file_uploader("Upload your resume (PDF only)", type=["pdf"])
 
 job_description = st.text_area(
@@ -38,65 +39,112 @@ tone = st.selectbox(
 
 st.divider()
 
-# Copy button
+# ── Copy button ────────────────────────────────────────────────────────────────
 def copy_button(text, key):
     components.html(f"""
-        <button onclick="navigator.clipboard.writeText(`{text}`)" 
+        <button id="{key}" onclick="
+            navigator.clipboard.writeText(`{text}`);
+            this.innerText = 'Copied!';
+            setTimeout(() => this.innerText = 'Copy to Clipboard', 2000);
+        " 
             style="background-color:#ff4b4b; color:white; border:none; 
             padding:8px 16px; border-radius:4px; cursor:pointer;">
             Copy to Clipboard
         </button>
     """, height=45)
 
-# ── Generate button ─────────────────────────────────────────────────────────────
-if st.button("Generate", type="primary", use_container_width=True):
-
-    # Validate inputs before sending
+# ── Validate shared inputs ─────────────────────────────────────────────────────
+def validate_inputs():
     if not resume_file:
         st.error("Please upload your resume PDF.")
-    elif not job_description.strip():
+        return False
+    if not job_description.strip():
         st.error("Please paste a job description.")
-    else:
-        with st.spinner("Generating your cover letter and cold email..."):
-            try:
-                response = requests.post(
-                    f"{BACKEND_URL}/generate",
-                    files={"resume": (resume_file.name, resume_file.getvalue(), "application/pdf")},
-                    data={"job_description": job_description, "tone": tone}
-                )
-                response.raise_for_status()
-                st.session_state.results = response.json()
+        return False
+    return True
 
-            except requests.exceptions.ConnectionError:
-                st.error("Could not connect to the backend. Make sure FastAPI is running on port 8000.")
-            except Exception as e:
-                if "429" in str(e) or "quota" in str(e).lower():
-                    st.error("The AI service is temporarily unavailable due to rate limits. Please try again in a few minutes.")
-                else:
+# ── Two columns ────────────────────────────────────────────────────────────────
+col1, col2 = st.columns(2)
+
+
+# ── Cover Letter Column ────────────────────────────────────────────────────────
+with col1:
+    st.subheader("Cover Letter")
+    cl_notes = st.text_area(
+        "Additional notes (optional)",
+        height=150,
+        placeholder="e.g. mention I live on campus, use a 3 paragraph format...",
+        key="cl_notes"
+    )
+    if st.button("Generate Cover Letter", type="primary", use_container_width=True):
+        if validate_inputs():
+            with st.spinner("Generating your cover letter..."):
+                try:
+                    response = requests.post(
+                        f"{BACKEND_URL}/generate_cover_letter",
+                        files={"resume": (resume_file.name, resume_file.getvalue(), "application/pdf")},
+                        data={"job_description": job_description, "tone": tone, "notes": cl_notes}
+                    )
+                    response.raise_for_status()
+                    st.session_state.cover_letter = response.json()["cover_letter"]
+                except requests.exceptions.HTTPError as e:
+                    if e.response.status_code == 429 or e.response.status_code == 500:
+                        st.error("Rate limit reached. Please try again later.")
+                    else:
+                        st.error(f"Something went wrong: {e}")
+                except requests.exceptions.ConnectionError:
+                    st.error("Could not connect to the backend. Make sure FastAPI is running on port 8000.")
+                except Exception as e:
                     st.error(f"Something went wrong: {e}")
 
-if st.session_state.results:
-    st.success("Done! Your drafts are ready.")
-    st.divider()
+    if st.session_state.cover_letter:
+        st.text_area("", value=st.session_state.cover_letter, height=500, key="cover_letter_box")
+        copy_button(st.session_state.cover_letter, key="cover_letter_copy")
+        st.download_button(
+            label="Download Cover Letter",
+            data=st.session_state.cover_letter,
+            file_name="cover_letter.txt",
+            mime="text/plain"
+        )
 
-    st.subheader("Cover Letter")
-    st.text_area("", value=st.session_state.results["cover_letter"], height=800, key="cover_letter_box")
-    copy_button(st.session_state.results["cover_letter"], key="cover_letter_copy")
-    st.download_button(
-        label="Download Cover Letter",
-        data=st.session_state.results["cover_letter"],
-        file_name="cover_letter.txt",
-        mime="text/plain"
-    )
-
-    st.divider()
-
+# ── Cold Email Column ──────────────────────────────────────────────────────────
+with col2:
     st.subheader("Cold Email")
-    st.text_area("", value=st.session_state.results["cold_email"], height=400, key="cold_email_box")
-    copy_button(st.session_state.results["cold_email"], key="cold_email_copy")
-    st.download_button(
-        label="Download Cold Email",
-        data=st.session_state.results["cold_email"],
-        file_name="cold_email.txt",
-        mime="text/plain"
+    ce_notes = st.text_area(
+        "Additional notes (optional)",
+        height=150,
+        placeholder="e.g. mention I'm available for a call this week...",
+        key="ce_notes"
     )
+    if st.button("Generate Cold Email", type="primary", use_container_width=True):
+        if validate_inputs():
+            with st.spinner("Generating your cold email..."):
+                try:
+                    response = requests.post(
+                        f"{BACKEND_URL}/generate_cold_email",
+                        files={"resume": (resume_file.name, resume_file.getvalue(), "application/pdf")},
+                        data={"job_description": job_description, "tone": tone, "notes": ce_notes}
+                    )
+                    response.raise_for_status()
+                    st.session_state.cold_email = response.json()["cold_email"]
+                except requests.exceptions.HTTPError as e:
+                    if e.response.status_code == 429:
+                        st.error("Rate limit reached. Please try again later.")
+                    elif e.response.status_code == 503:
+                        st.error("Gemini is currently busy. Please try again in a moment.")
+                    else:
+                        st.error(f"Something went wrong: {e}")
+                except requests.exceptions.ConnectionError:
+                    st.error("Could not connect to the backend. Make sure FastAPI is running on port 8000.")
+                except Exception as e:
+                    st.error(f"Something went wrong: {e}")
+
+    if st.session_state.cold_email:
+        st.text_area("", value=st.session_state.cold_email, height=500, key="cold_email_box")
+        copy_button(st.session_state.cold_email, key="cold_email_copy")
+        st.download_button(
+            label="Download Cold Email",
+            data=st.session_state.cold_email,
+            file_name="cold_email.txt",
+            mime="text/plain"
+        )

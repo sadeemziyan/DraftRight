@@ -1,5 +1,6 @@
 import asyncio
-from fastapi import FastAPI, File, UploadFile, Form
+from fastapi import FastAPI, File, UploadFile, Form, HTTPException
+from google.genai import errors
 from fastapi.middleware.cors import CORSMiddleware
 from backend.parser import extract_text_from_pdf
 from backend.llm import generate_cover_letter, generate_cold_email
@@ -9,7 +10,7 @@ app = FastAPI()
 # Allow Streamlit (running on a different port) to talk to FastAPI
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["https://localhost:8501"],
+    allow_origins=["http://localhost:8501"],
     allow_methods=["*"],
     allow_headers=["*"],
 )
@@ -20,22 +21,38 @@ def health_check():
     return {"status": "backend is running"}
 
 
-@app.post("/generate")
-async def generate(
+@app.post("/generate_cover_letter")
+async def generate_cl(
     resume: UploadFile = File(...),
     job_description: str = Form(...),
     tone: str = Form(...),
+    notes: str = Form(""),
 ):
-    file_bytes = await resume.read()
+    try:
+        file_bytes = await resume.read()
+        resume_text = extract_text_from_pdf(file_bytes)
+        cover_letter = await generate_cover_letter(resume_text, job_description, tone, notes)
+        return {"cover_letter": cover_letter}
+    except errors.ClientError as e:
+        if "429" in str(e):
+            raise HTTPException(status_code=429, detail="Rate limit reached. Please try again later.")
+        raise HTTPException(status_code=500, detail=str(e))
 
-    resume_text = extract_text_from_pdf(file_bytes)
-
-    # Step 3: generate both outputs from Gemini
-    cover_letter = await generate_cover_letter(resume_text, job_description, tone)
-    await asyncio.sleep(2)
-    cold_email = await generate_cold_email(resume_text, job_description, tone)
-
-    return {
-        "cover_letter": cover_letter,
-        "cold_email": cold_email,
-    }
+@app.post("/generate_cold_email")
+async def generate_ce(
+    resume: UploadFile = File(...),
+    job_description: str = Form(...),
+    tone: str = Form(...),
+    notes: str = Form(""),
+):
+    try:
+        file_bytes = await resume.read()
+        resume_text = extract_text_from_pdf(file_bytes)
+        cold_email = await generate_cold_email(resume_text, job_description, tone, notes)
+        return {"cold_email": cold_email}
+    except errors.ClientError as e:
+        if "429" in str(e):
+            raise HTTPException(status_code=429, detail="Rate limit reached. Please try again later.")
+        raise HTTPException(status_code=500, detail=str(e))
+    except errors.ServerError as e:
+        raise HTTPException(status_code=503, detail="The AI model is currently experiencing high demand. Please try again in a moment.")
