@@ -128,8 +128,10 @@ with col2:
                     response.raise_for_status()
                     st.session_state.cold_email = response.json()["cold_email"]
                 except requests.exceptions.HTTPError as e:
-                    if e.response.status_code == 429 or e.response.status_code == 500:
+                    if e.response.status_code == 429:
                         st.error("Rate limit reached. Please try again later.")
+                    elif e.response.status_code == 503:
+                        st.error("Gemini is currently busy. Please try again in a moment.")
                     else:
                         st.error(f"Something went wrong: {e}")
                 except requests.exceptions.ConnectionError:

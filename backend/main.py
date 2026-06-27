@@ -54,3 +54,5 @@ async def generate_ce(
         if "429" in str(e):
             raise HTTPException(status_code=429, detail="Rate limit reached. Please try again later.")
         raise HTTPException(status_code=500, detail=str(e))
+    except errors.ServerError as e:
+        raise HTTPException(status_code=503, detail="The AI model is currently experiencing high demand. Please try again in a moment.")
