@@ -1,11 +1,10 @@
 import os
-import google.generativeai as genai
+from google import genai
 from dotenv import load_dotenv
 
 load_dotenv()
 
-genai.configure(api_key = os.getenv("GEMINI_API_KEY"))
-model = genai.GenerativeModel("gemini-2.5-flash-lite")
+client = genai.Client(api_key = os.getenv("GEMINI_API_KEY"))
 
 async def generate_cover_letter(resume_text: str, job_description: str, tone: str) -> str:
     prompt = f"""
@@ -32,7 +31,7 @@ JOB DESCRIPTION:
 
 Write the cover letter now:
 """
-    response = model.generate_content(prompt)
+    response = client.models.generate_content(model = "gemini-2.5-flash-lite", contents = prompt)
     return response.text
 
 async def generate_cold_email(resume_text: str, job_description: str, tone: str) -> str:
@@ -60,5 +59,5 @@ JOB DESCRIPTION:
 
 Write the cold email now:
 """
-    response = model.generate_content(prompt)
+    response = client.models.generate_content(model = "gemini-2.5-flash-lite", contents = prompt)
     return response.text

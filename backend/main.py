@@ -1,3 +1,4 @@
+import asyncio
 from fastapi import FastAPI, File, UploadFile, Form
 from fastapi.middleware.cors import CORSMiddleware
 from backend.parser import extract_text_from_pdf
@@ -8,7 +9,7 @@ app = FastAPI()
 # Allow Streamlit (running on a different port) to talk to FastAPI
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=["https://localhost:8501"],
     allow_methods=["*"],
     allow_headers=["*"],
 )
@@ -31,6 +32,7 @@ async def generate(
 
     # Step 3: generate both outputs from Gemini
     cover_letter = await generate_cover_letter(resume_text, job_description, tone)
+    await asyncio.sleep(2)
     cold_email = await generate_cold_email(resume_text, job_description, tone)
 
     return {

@@ -2,6 +2,8 @@ import streamlit as st
 import streamlit.components.v1 as components
 import requests
 
+BACKEND_URL = "https://localhost:8000"
+
 
 # ── Page config ────────────────────────────────────────────────────────────────
 st.set_page_config(
@@ -58,7 +60,7 @@ if st.button("Generate", type="primary", use_container_width=True):
         with st.spinner("Generating your cover letter and cold email..."):
             try:
                 response = requests.post(
-                    "http://localhost:8000/generate",
+                    f"{BACKEND_URL}/generate",
                     files={"resume": (resume_file.name, resume_file.getvalue(), "application/pdf")},
                     data={"job_description": job_description, "tone": tone}
                 )
@@ -68,7 +70,10 @@ if st.button("Generate", type="primary", use_container_width=True):
             except requests.exceptions.ConnectionError:
                 st.error("Could not connect to the backend. Make sure FastAPI is running on port 8000.")
             except Exception as e:
-                st.error(f"Something went wrong: {e}")
+                if "429" in str(e) or "quota" in str(e).lower():
+                    st.error("The AI service is temporarily unavailable due to rate limits. Please try again in a few minutes.")
+                else:
+                    st.error(f"Something went wrong: {e}")
 
 if st.session_state.results:
     st.success("Done! Your drafts are ready.")
