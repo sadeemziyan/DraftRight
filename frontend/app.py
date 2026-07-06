@@ -1,8 +1,9 @@
+import os
 import streamlit as st
 import streamlit.components.v1 as components
 import requests
 
-BACKEND_URL = "http://localhost:8000"
+BACKEND_URL = os.getenv("BACKEND_URL", "http://localhost:8000")
 
 # ── Page config ────────────────────────────────────────────────────────────────
 st.set_page_config(
