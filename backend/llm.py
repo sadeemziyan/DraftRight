@@ -33,7 +33,7 @@ JOB DESCRIPTION:
 
 Write the cover letter now:
 """
-    response = client.models.generate_content(model = "gemini-2.5-flash-lite", contents = prompt)
+    response = client.models.generate_content(model = "gemini-2.5-flash", contents = prompt)
     return response.text
 
 async def generate_cold_email(resume_text: str, job_description: str, tone: str, notes: str = "") -> str:
@@ -63,5 +63,5 @@ JOB DESCRIPTION:
 
 Write the cold email now:
 """
-    response = client.models.generate_content(model = "gemini-2.5-flash-lite", contents = prompt)
+    response = client.models.generate_content(model = "gemini-2.5-flash", contents = prompt)
     return response.text
