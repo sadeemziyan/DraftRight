@@ -78,6 +78,7 @@ with col1:
         key="cl_notes"
     )
     if st.button("Generate Cover Letter", type="primary", use_container_width=True):
+        st.session_state.cold_email = None
         if validate_inputs():
             with st.spinner("Generating your cover letter..."):
                 try:
@@ -120,6 +121,7 @@ with col2:
         key="ce_notes"
     )
     if st.button("Generate Cold Email", type="primary", use_container_width=True):
+        st.session_state.cold_email = None
         if validate_inputs():
             with st.spinner("Generating your cold email..."):
                 try:
