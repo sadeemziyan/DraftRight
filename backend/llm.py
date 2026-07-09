@@ -37,6 +37,7 @@ Write the cover letter now:
     return response.text
 
 async def generate_cold_email(resume_text: str, job_description: str, tone: str, notes: str = "") -> str:
+    print(f"DEBUG notes received: '{notes}'")  # add this
     notes_section = f"\nADDITIONAL INSTRUCTIONS:\n{notes}" if notes.strip() else ""    
     prompt = f"""
 You are an expert at writing cold outreach emails that get responses.
