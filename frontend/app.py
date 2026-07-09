@@ -78,7 +78,7 @@ with col1:
         key="cl_notes"
     )
     if st.button("Generate Cover Letter", type="primary", use_container_width=True):
-        st.session_state.cold_email = None
+        st.session_state.cover_letter = None
         if validate_inputs():
             with st.spinner("Generating your cover letter..."):
                 try:
@@ -102,7 +102,7 @@ with col1:
                     st.error(f"Something went wrong: {e}")
 
     if st.session_state.cover_letter:
-        st.text_area("", value=st.session_state.cover_letter, height=500, key="cover_letter_box")
+        st.text_area("", value=st.session_state.cover_letter, height=500, key=f"cover_letter_box_{hash(st.session_state.cover_letter)}")
         copy_button(st.session_state.cover_letter, key="cover_letter_copy")
         st.download_button(
             label="Download Cover Letter",
@@ -133,7 +133,6 @@ with col2:
                     )
                     response.raise_for_status()
                     st.session_state.cold_email = response.json()["cold_email"]
-                    st.rerun()
                     st.write(f"DEBUG new result: {st.session_state.cold_email}")  # first 100 chars
                 except requests.exceptions.HTTPError as e:
                     if e.response.status_code == 429:
@@ -148,7 +147,7 @@ with col2:
                     st.error(f"Something went wrong: {e}")
 
     if st.session_state.cold_email:
-        st.text_area("", value=st.session_state.cold_email, height=500, key="cold_email_box")
+        st.text_area("", value=st.session_state.cold_email, height=500, key=f"cold_email_box_{hash(st.session_state.cold_email)}")
         copy_button(st.session_state.cold_email, key="cold_email_copy")
         st.download_button(
             label="Download Cold Email",
