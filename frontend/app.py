@@ -125,7 +125,6 @@ with col2:
         if validate_inputs():
             with st.spinner("Generating your cold email..."):
                 try:
-                    st.write(f"DEBUG notes: '{ce_notes}'")  # add this
                     response = requests.post(
                         f"{BACKEND_URL}/generate_cold_email",
                         files={"resume": (resume_file.name, resume_file.getvalue(), "application/pdf")},
@@ -133,7 +132,6 @@ with col2:
                     )
                     response.raise_for_status()
                     st.session_state.cold_email = response.json()["cold_email"]
-                    st.write(f"DEBUG new result: {st.session_state.cold_email}")  # first 100 chars
                 except requests.exceptions.HTTPError as e:
                     if e.response.status_code == 429:
                         st.error("Rate limit reached. Please try again later.")
