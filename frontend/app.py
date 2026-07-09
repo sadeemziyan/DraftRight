@@ -125,6 +125,7 @@ with col2:
         if validate_inputs():
             with st.spinner("Generating your cold email..."):
                 try:
+                    st.write(f"DEBUG notes: '{ce_notes}'")  # add this
                     response = requests.post(
                         f"{BACKEND_URL}/generate_cold_email",
                         files={"resume": (resume_file.name, resume_file.getvalue(), "application/pdf")},
