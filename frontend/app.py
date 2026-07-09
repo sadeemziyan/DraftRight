@@ -133,6 +133,7 @@ with col2:
                     )
                     response.raise_for_status()
                     st.session_state.cold_email = response.json()["cold_email"]
+                    st.rerun()
                     st.write(f"DEBUG new result: {st.session_state.cold_email}")  # first 100 chars
                 except requests.exceptions.HTTPError as e:
                     if e.response.status_code == 429:
